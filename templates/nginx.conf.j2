@@ -1,0 +1,123 @@
+# {{ ansible_managed }}
+
+user {{ nginx_user }} {{ nginx_group }};
+
+worker_processes {{ nginx_worker_processes }};
+worker_rlimit_nofile {{ nginx_worker_rlimit_nofile }};
+
+error_log {{ nginx_log_directory }}/error.log {{ nginx_log_error }};
+
+events {
+  worker_connections {{ nginx_worker_connections }};
+}
+
+http {
+  {{ lookup('file', 'types/mime.conf')|replace("\n", ' ') }}
+  {{ lookup('file', 'types/charset.conf') }}
+  {{ lookup('file', 'types/gzip.conf') }}
+
+  access_log {{ nginx_log_directory }}/access.log {{ nginx_log_access }};
+{% for param, value in nginx_params.items() %}
+  {{ param }} {{ value }};
+{% endfor %}
+
+  # upstreams
+
+{% for upstream in nginx_upstreams|default([]) %}
+  # {{ upstream.name }}
+  upstream {{ upstream.name }} {
+{% for server in upstream.servers %}
+    server {{ server }};
+{% endfor %}
+  }
+
+{% endfor %}
+
+  # sites
+
+{% for site in nginx_sites|default([]) %}
+  # {{ site.names|first }}
+  server {
+    server_name {{ site.names|join(' ') }};
+    listen {{ site.listen }};
+
+{% if site.params is defined %}
+{% for param, value in site.params.iteritems() %}
+    {{ param }} {{ value }};
+{% endfor %}
+{% endif %}
+
+{% if site.locations|default(false) %}
+{% for location, params in site.locations.iteritems() %}
+    location {{ location }} {
+{% for param in params %}
+      {{ param }};
+    }
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% if site.ssl|default(false) %}
+    ssl_certificate_key {{ site.ssl.key }};
+    ssl_certificate {{ site.ssl.certificate }};
+
+    ssl_ciphers {{ site.ssl.ciphers|default(nginx_ssl.ciphers) }};
+    ssl_protocols {{ site.ssl.protocols|default(nginx_ssl.protocols) }};
+    ssl_session_cache {{ site.ssl.session_cache|default(nginx_ssl.session_cache) }};
+    ssl_session_timeout {{ site.ssl.session_timeout|default(nginx_ssl.session_timeout) }};
+
+    ssl_stapling {{ site.ssl.stapling|default(nginx_ssl.stapling) }};
+    ssl_stapling_verify {{ site.ssl.stapling_verify|default(nginx_ssl.stapling_verify) }};
+    resolver {{ site.ssl.resolver|default(nginx_ssl.resolver) }};
+    resolver_timeout {{ site.ssl.resolver_timeout|default(nginx_ssl.resolver_timeout) }};
+
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam {{ nginx_conf_directory }}/dhparam.pem;
+
+{% for header in site.ssl.add_headers|default(nginx_ssl.add_headers) %}
+    add_header {{ header }};
+{% endfor %}
+
+{% endif %}
+{% if site.php|default(false) %}
+    location ~ \.php$ {
+       try_files $uri =404;
+       {{ lookup('file', 'params/fastcgi.conf')|replace("\n", ' ') }}
+       fastcgi_index {{ site.php.index }};
+       fastcgi_pass {{ site.php.pass }};
+    }
+
+{% if site.php.status|default(false) %}
+    location {{ '= /php-status' if site.php.status is sameas true else site.php.status }} {
+      {{ lookup('file', 'params/fastcgi.conf')|replace("\n", ' ') }}
+      fastcgi_pass {{ site.php.pass }};
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+    }
+
+{% endif %}
+{% if site.php.ping|default(false) %}
+    location {{ '= /php-ping' if site.php.ping is sameas true else site.php.ping }} {
+      {{ lookup('file', 'params/fastcgi.conf')|replace("\n", ' ') }}
+      fastcgi_pass {{ site.php.pass }};
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+    }
+
+{% endif %}
+{% endif %}
+{% if site.hhvm|default(false) %}
+{% endif %}
+{% if site.status|default(false) %}
+    location {{ '= /nginx-status' if site.status is sameas true else site.status }} {
+      stub_status on;
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+    }
+{% endif %}
+  }
+{% endfor %}
+}

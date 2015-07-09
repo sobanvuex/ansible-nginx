@@ -1,0 +1,13 @@
+---
+- name: Add repository
+  copy:
+    content: "deb http://nginx.org/packages/{{ ansible_distribution|lower }}/ {{ ansible_lsb.codename }} nginx"
+    dest: "/etc/apt/sources.list.d/nginx.list"
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Add repository key
+  apt_key:
+    url: http://nginx.org/keys/nginx_signing.key
+    state: present

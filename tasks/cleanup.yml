@@ -1,0 +1,12 @@
+---
+- name: Check for unwanted files
+  shell:
+    "ls -1 {{ nginx_conf_directory }}"
+  register: nginx_unwanted
+
+- name: Remove unwanted files
+  file:
+    path: "{{ nginx_conf_directory }}/{{ item }}"
+    state: absent
+  with_items: nginx_unwanted.stdout_lines
+  when: item not in nginx_conf_files

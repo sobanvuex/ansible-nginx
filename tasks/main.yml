@@ -1,0 +1,6 @@
+---
+
+- include: repository.yml
+- include: install.yml
+- include: cleanup.yml
+- include: configuration.yml

@@ -1,0 +1,35 @@
+---
+
+- name: Install nginx
+  apt:
+    pkg: nginx
+    update_cache: yes
+    state: latest
+  notify: Restart nginx
+
+- name: Ensure log directory exists
+  file:
+    path: "{{ nginx_log_directory }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+    mode: 0750
+
+- name: Generate Difi Hellman parameters file
+  shell:
+    "openssl dhparam -out {{ nginx_conf_directory }}/dhparam.pem {{ nginx_dhparam_bits }}"
+  args:
+    creates: "{{ nginx_conf_directory }}/dhparam.pem"
+  when: nginx_dhparam_file is not defined
+
+- name: Copy Difi Hellman parameters file
+  copy:
+    src: "{{ nginx_dhparam_file }}"
+    dest: "{{ nginx_conf_directory }}/dhparam.pem"
+  when: nginx_dhparam_file is defined
+
+- name: Check service
+  service:
+    name: nginx
+    state: started
+    enabled: yes

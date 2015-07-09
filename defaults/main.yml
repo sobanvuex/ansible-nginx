@@ -1,0 +1,57 @@
+---
+nginx_conf_directory: /etc/nginx
+nginx_log_directory: /var/log/nginx
+nginx_conf_files:
+  - upstreams
+  - sites
+  - nginx.conf
+  - dhparam.pem
+
+nginx_user: www-data
+nginx_group: www-data
+
+nginx_dhparam_bits: 4096
+
+nginx_worker_processes: "{{ ansible_processor_cores }}"
+nginx_worker_rlimit_nofile: 4096
+nginx_log_error: warn
+nginx_log_access: combined
+nginx_worker_connections: 2048
+
+nginx_upstreams: []
+
+nginx_sites:
+  - names:
+      - _
+    listen: 80 default_server deferred
+    params:
+      root: /srv/www
+    status: yes
+
+nginx_params:
+  server_tokens: 'off'
+  default_type: application/octet-stream
+  keepalive_timeout: 20
+  sendfile: 'on'
+  tcp_nopush: 'on'
+  index: index.html index.php
+  gzip: 'on'
+  gzip_comp_level: 5
+  gzip_min_length: 256
+  gzip_proxied: any
+  gzip_vary: 'on'
+
+nginx_ssl:
+  ciphers: EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
+  protocols: TLSv1 TLSv1.1 TLSv1.2
+  session_cache: shared:SSL:10m
+  session_timeout: 5m
+  stapling: 'on'
+  stapling_verify: 'on'
+  resolver: 8.8.4.4 8.8.8.8 valid=300s
+  resolver_timeout: 10s
+  add_headers:
+    - Strict-Transport-Security "max-age=31536000; includeSubdomains"
+    - X-Frame-Options "SAMEORIGIN"
+    - X-Content-Type-Options "nosniff"
+    - X-XSS-Protection "1; mode=block"

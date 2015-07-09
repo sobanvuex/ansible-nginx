@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: Alex Soban
+  description: nginx
+  license: MIT
+  min_ansible_version: 1.2
+  platforms:
+  - name: Ubuntu
+    versions:
+      - lucid
+      - precise
+      - trusty
+      - utopic
+  - name: Debian
+    versions:
+      - jessie
+      - squeeze
+      - wheezy
+  categories:
+  - system
